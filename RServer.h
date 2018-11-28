@@ -13,6 +13,7 @@
 #define NAME_LEN 32 						//max number of charackters in player name
 #define DEFAULT_PORT 4000 			//default port used in connection
 #define clear() printf("\033[H\033[J")	//similar effect to system "clear"
+#define MAX_PLAYERS 32
 
 typedef enum Attack {			//enum to determine player choice in game
 	ROCK,
@@ -48,8 +49,9 @@ void game_setup(int num_p, Player **p, Game *g);
 void recursive_play(Game *currentGame, int max_place);
 void wait_for_choose(int number_of_players, Player **p);
 void *ThreadMain(void *threadArgs);
-void calculateWhoWon(Game *g);
+void calculate_who_won(Game *g);
 void kill(Attack att, Game *g);
-int printInfo(Game *g);
-
+int print_info(Game *g);
+void send_status(Game *g, int num_alive, int num_dead);
+	
 #endif

@@ -17,8 +17,7 @@ int main(void) {
 	}
 	
 	server_socket_descriptor = server_setup();
-	wait_for_all_to_connect( global_number_of_players,  
-		global_players,  server_socket_descriptor);
+	wait_for_all_to_connect( global_number_of_players,global_players,  server_socket_descriptor);
 		
 	game_setup(global_number_of_players, global_players_pointers, &mainGame);	
 	
@@ -36,9 +35,18 @@ int main(void) {
 
 void intro_setup(Game *g){
 	clear();
+	printf("%lu", sizeof(Attack));
 	puts("Welcome to \"Rock, Paper, Scissors\" Server!\n");
 	puts("Type number of players:\n");
 	scanf("%d",&(g->number_of_players));
+	if (g->number_of_players>MAX_PLAYERS){
+		printf("%d is maximum number of players\n", MAX_PLAYERS);
+		exit(0);
+	}
+	if (g->number_of_players<2){
+		printf("Number of players has to be bigger then 2\n");
+		exit(0);
+	}
 }
 
 int server_setup(){
@@ -82,6 +90,7 @@ void wait_for_all_to_connect(int num_p, Player *p, int soc_des){
 		printf("%d. Player %s has connected\n",i+1, players[i].name); 	
 		fflush(stdout);
 	}
+	puts("All players are connected");
 }
 
 void game_setup(int num_p, Player **p, Game *g){	
@@ -110,11 +119,13 @@ void recursive_play(Game *currentGame, int max_place){
 	}
 	else {
 		wait_for_choose(currentGame->number_of_players, currentGame->players);
-		puts("GAME BEGINS");
-		calculateWhoWon(currentGame);
+		calculate_who_won(currentGame);
 		
-		int number_of_alive=printInfo(currentGame);
+		
+		
+		int number_of_alive=print_info(currentGame);
 		int number_of_dead= currentGame->number_of_players-number_of_alive;
+		//send_status(currentGame, number_of_alive, number_of_dead);
 		Player **winners= malloc(number_of_alive*sizeof(Player*)); 
 		Player **losers=malloc(number_of_dead*sizeof(Player*));
 		Player **players=currentGame->players;
@@ -185,10 +196,11 @@ void *ThreadMain(void *threadArgs) {
 	return (NULL);
 }
 
-void calculateWhoWon(Game *g){
+void calculate_who_won(Game *g){
 	Game *currentGame =g; 
 	int number_of_players=currentGame->number_of_players;
 	Player **players =currentGame->players;
+	puts("GAME BEGINS");
 	for (int i=0; i<number_of_players; i++){
 		switch(players[i]->choice){
 		case(ROCK):
@@ -229,7 +241,7 @@ void kill(Attack att, Game *g){
 	}	
 }
 
-int printInfo(Game *g){
+int print_info(Game *g){
 	int number_of_alive =0;
 	int number_of_players=g->number_of_players;
 	Player **players =g->players;
@@ -247,5 +259,12 @@ int printInfo(Game *g){
 	return number_of_alive;
 }
 
-
+void send_status(Game *g, int num_alive, int num_dead){
+	for (int i=0; i<g->number_of_players; i++){
+		int message=2;
+		send( g->players[i]->socket_descriptor,&message, sizeof(int), 0);
+		//int message2={g->players[i]->is_alive, };
+		send( g->players[i]->socket_descriptor,&message, sizeof(int), 0);
+	}	
+}
 

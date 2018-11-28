@@ -14,6 +14,7 @@ int main(void){
 	
 	while (game_is_running==1){
 		int info_from_server;
+		puts("Waiting for information from server\n");
 		read(sock, &info_from_server, sizeof(int));
 		switch(info_from_server){
 			case 0:
@@ -30,6 +31,7 @@ int main(void){
 					if (message ==1 ||message==2||message==3) valid=1;
 				}
 				send(sock  , &message , sizeof(int) , 0 );
+				clear();
 			break;
 			case 2: ;
 				int status[3]={0}; 		//	s[0]- 1==won round, 0==died 
