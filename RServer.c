@@ -6,40 +6,30 @@
 #include "RServer.h"
 
 int main(void) {
-	Game mainGame;							//struct of main game 
+	Game mainGame;						//struct of main game 
 	int server_socket_descriptor=0;	//int descriptor of server socket	
 	intro_setup(&mainGame); 
 	int global_number_of_players=mainGame.number_of_players;
 	Player global_players[global_number_of_players];
 	Player* global_players_pointers[global_number_of_players];
-	for (int i=0; i<global_number_of_players;i++){
+	for (int i=0; i<global_number_of_players;i++){		//assign all players structs to array of pointers of Players							
 		global_players_pointers[i]=&global_players[i];
 	}
-	
-	server_socket_descriptor = server_setup();
-	wait_for_all_to_connect( global_number_of_players,global_players,  server_socket_descriptor);
-		
+	server_socket_descriptor = server_setup();		//setup of server socket
+	wait_for_all_to_connect( global_number_of_players,global_players,  server_socket_descriptor); //wait and get name from everybody	
 	game_setup(global_number_of_players, global_players_pointers, &mainGame);	
-	
-	recursive_play(&mainGame, 1);
-	
-	int message =0;
-	for (int i=0; i<global_number_of_players; i++){
-		printf("Player %s is on %d place\n", global_players[i].name, global_players[i].place);
-		send( global_players[i].socket_descriptor,&message, sizeof(int), 0);
-	}
-
+	recursive_play(&mainGame, 1);		//whole game happends basicly here
+	send_final(&mainGame);					//tell clients that game has ended
 	return 0;
 }
 
 
 void intro_setup(Game *g){
 	clear();
-	printf("%lu", sizeof(Attack));
 	puts("Welcome to \"Rock, Paper, Scissors\" Server!\n");
 	puts("Type number of players:\n");
-	scanf("%d",&(g->number_of_players));
-	if (g->number_of_players>MAX_PLAYERS){
+	scanf("%d",&(g->number_of_players));			//get number of players in game
+	if (g->number_of_players>MAX_PLAYERS){	//check if inputed value is valid
 		printf("%d is maximum number of players\n", MAX_PLAYERS);
 		exit(0);
 	}
@@ -51,30 +41,29 @@ void intro_setup(Game *g){
 
 int server_setup(){
 	int server_socket_descriptor=0;
-	struct sockaddr_in address; 
-    memset(&address, 0, sizeof(address));
+	struct sockaddr_in address; 					//prepere socket address structure
+    memset(&address, 0, sizeof(address));	//set memory of address to 0
     if ((server_socket_descriptor = socket(AF_INET, SOCK_STREAM, 0)) == 0){ 
         perror("socket failed"); 
         exit(EXIT_FAILURE); 
     }    
-    address.sin_family = AF_INET; 
+    address.sin_family = AF_INET; 				//set arguments of socket address
     address.sin_addr.s_addr = INADDR_ANY; 
     address.sin_port = htons( DEFAULT_PORT );    
 	if (setsockopt(server_socket_descriptor, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int)) < 0)
     perror("setsockopt(SO_REUSEADDR) failed");   
-    if (bind(server_socket_descriptor, (struct sockaddr *)&address, sizeof(address))<0){ 
-        perror("bind failed"); 
+    if (bind(server_socket_descriptor, (struct sockaddr *)&address, sizeof(address))<0){ 	//bind socket to address
+        perror("bind failed"); 					
         exit(EXIT_FAILURE); 
     } 
-    if (listen(server_socket_descriptor, 3) < 0){ 
+    if (listen(server_socket_descriptor, 3) < 0){ 	//start listing on this socket
         perror("listen"); 
         exit(EXIT_FAILURE); 
     } 
-	return server_socket_descriptor;
+	return server_socket_descriptor;			//return descriptor of server socket
 }
 
 void wait_for_all_to_connect(int num_p, Player *p, int soc_des){
-	
 	int number_of_players = num_p;
 	Player *players=p;
 	int server_socket_descriptor = soc_des;
@@ -125,7 +114,7 @@ void recursive_play(Game *currentGame, int max_place){
 		
 		int number_of_alive=print_info(currentGame);
 		int number_of_dead= currentGame->number_of_players-number_of_alive;
-		//send_status(currentGame, number_of_alive, number_of_dead);
+		send_status(currentGame, number_of_alive, number_of_dead, max_place);
 		Player **winners= malloc(number_of_alive*sizeof(Player*)); 
 		Player **losers=malloc(number_of_dead*sizeof(Player*));
 		Player **players=currentGame->players;
@@ -259,12 +248,40 @@ int print_info(Game *g){
 	return number_of_alive;
 }
 
-void send_status(Game *g, int num_alive, int num_dead){
+void send_status(Game *g, int num_alive, int num_dead, int win_place){
 	for (int i=0; i<g->number_of_players; i++){
 		int message=2;
 		send( g->players[i]->socket_descriptor,&message, sizeof(int), 0);
-		//int message2={g->players[i]->is_alive, };
-		send( g->players[i]->socket_descriptor,&message, sizeof(int), 0);
+		int status[3]={0}; 
+		status[0]=g->players[i]->is_alive;
+		if (g->players[i]->is_alive==1){
+			status[1]=win_place;
+			status[2]=num_alive;
+		}
+		else {
+			status[1]=win_place+num_alive;
+			status[2]=num_dead;
+		}
+		send( g->players[i]->socket_descriptor, status, 3*sizeof(int), 0);
 	}	
+}
+
+void send_final(Game *g){
+	int message0=0;
+	int message3=3;
+	for (int i=0; i<g->number_of_players; i++){
+		printf("Player %s is on %d place\n", g->players[i]->name, g->players[i]->place);
+		send( g->players[i]->socket_descriptor,&message3, sizeof(int), 0);
+		int status[2]={0}; 
+		status[0]=g->players[i]->place;
+		status[1]=g->number_of_players;
+		send( g->players[i]->socket_descriptor, status, 2*sizeof(int), 0);
+		send( g->players[i]->socket_descriptor,&message0, sizeof(int), 0);
+		
+	}
+	
+	
+	
+	
 }
 

@@ -25,7 +25,6 @@ int main(void){
 				int valid =0;
 				int message=0;
 				while (valid==0){
-					clear();
 					puts("Give me Rock(1), Paper(2), Scissors(3)\n");
 					scanf("%d", &message);
 					if (message ==1 ||message==2||message==3) valid=1;
@@ -38,14 +37,20 @@ int main(void){
 													//	s[1] - max_place;
 													//  s[2] - number_of_players;
 				read( sock ,&status, 3*sizeof(int));
-				if (status[0]==0){
+				if (status[0]==1){
 					printf("You survived this round and you are still fighting for %d place\n", status[1]);	
 				}
 				else {
 					printf("You lost this round but you are still fighting for %d place\n", status[1]);	
 				}
-				printf("There are %d opponents\n", status[2]);
+				printf("There are %d opponents left\n", status[2]-1);
 			break;
+			case 3: ;
+				int endstatus[2]={0}; 		//	s[0]- 1==place 
+													//	s[1] - number_of_players;
+				read( sock ,&endstatus, 2*sizeof(int));
+				printf("The game has ended for you.\n You are on %d place out of %d players \n",endstatus[0], endstatus[1]);	
+				break;
 			default:
 			perror("Something went very wrong"); exit(0);
 			break;
